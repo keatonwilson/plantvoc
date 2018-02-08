@@ -136,7 +136,7 @@ AIC(lm1)
 library(ggplot2)
 
 Fig.2a = ggplot(moresumdatedit, aes(x = Temp, y =sumdat)) +
-  geom_jitter(size = 6, alpha = 0.6, width = 0.05) +
+  geom_jitter(size = 4, alpha = 0.6, width = 0.05) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
   geom_smooth(method=lm, colour = "black") +
@@ -145,7 +145,7 @@ Fig.2a = ggplot(moresumdatedit, aes(x = Temp, y =sumdat)) +
   geom_hline(yintercept = 0, size = 0.25)
 
 Fig.2b = ggplot(moresumdatedit, aes(x = Humidity, y =sumdat)) +
-  geom_jitter(size = 6, alpha = 0.6, width = 0.05) +
+  geom_jitter(size = 4, alpha = 0.6, width = 0.05) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
   geom_smooth(method="lm", colour = "black", formula = y ~ poly(x,2)) +
@@ -156,16 +156,16 @@ Fig.2b = ggplot(moresumdatedit, aes(x = Humidity, y =sumdat)) +
 
 
 ##Don't run this below - your file path will be different
-#ggsave(filename = "Fig.2a.pdf", plot = Fig.2a,
-#       path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures",
-#       width = 7, 
-#       height = 6,
-#       units = "in")
-#ggsave(filename = "Fig.2b.pdf", plot = Fig.2b,
-#       path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures",
-#       width = 7, 
-#       height = 6,
-#       units = "in")
+ggsave(filename = "Fig.2a.pdf", plot = Fig.2a,
+       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/",
+       width = 8, 
+       height = 7,
+       units = "in")
+ggsave(filename = "Fig.2b.pdf", plot = Fig.2b,
+       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/",
+      width = 8, 
+       height = 7,
+      units = "in")
 
 
 
@@ -275,7 +275,7 @@ summary(lm1)
 ##OK PC1 loads with humidity, good p-value, bad R2, but whatever. Let's make a nice ggplot
 
 Fig.2d = ggplot(bothgoodnew, aes(x = Humidity, y =PC1)) +
-  geom_jitter(size = 6, alpha = 0.6, width = 0.5) +
+  geom_jitter(size = 4, alpha = 0.6, width = 0.5) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
   geom_smooth(method=lm, colour = "black") +
@@ -283,11 +283,11 @@ Fig.2d = ggplot(bothgoodnew, aes(x = Humidity, y =PC1)) +
   ylab("PC1")
 
 #Don't run this on your computer, the path will be different
-#ggsave(file = "Fig.2d.pdf", plot = Fig.2d,
-#       path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures",
-#       width = 7, 
-#       height = 6,
-#       units = "in")
+ggsave(file = "Fig.2d.pdf", plot = Fig.2d,
+       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/",
+       width = 7, 
+       height = 6,
+       units = "in")
 
 
 
@@ -296,7 +296,7 @@ summary(lm2)
 
 #Nice, strong relationship between temperature and PC2 - Plot!
 Fig.2c = ggplot(bothgoodnew, aes(x = ((Temp-32)*(5/9)), y =PC2)) +
-  geom_jitter(size = 6, alpha = 0.6, width = 0.5) +
+  geom_jitter(size = 4, alpha = 0.6, width = 0.5) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
   geom_smooth(method=lm, colour = "black") +
@@ -304,11 +304,11 @@ Fig.2c = ggplot(bothgoodnew, aes(x = ((Temp-32)*(5/9)), y =PC2)) +
   ylab("PC2")
 
 #Don't run
-#ggsave(file = "Fig.2c.pdf", plot = Fig.2c, 
- #      path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures",
-  #     width = 7, 
-   #    height = 6,
-    #   units = "in")
+ggsave(file = "Fig.2c.pdf", plot = Fig.2c, 
+      path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/",
+       width = 7, 
+       height = 6,
+       units = "in")
 
 
 #Discriminant Analysis
@@ -428,7 +428,7 @@ g +
   geom_vline(xintercept = 0, size = 0.1) 
 
 ggsave(plot = g, file = "Fig.6a.pdf",
-      path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures", limitsize = FALSE)
+      path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/", limitsize = FALSE)
 
 
 g1 = ggplot(data = newdata, aes(x = LDA1, y = PC2)) +
@@ -449,7 +449,7 @@ g1 +
   geom_vline(xintercept = 0, size = 0.1) 
 
 ggsave(plot = g1, file = "Fig.6b.pdf",
-      path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures")
+      path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
 
 g2 = ggplot(data = newdata, aes(x = LDA2, y = PC1)) +
   stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
@@ -469,7 +469,7 @@ g2 +
   geom_vline(xintercept = 0, size = 0.1)  
 
 ggsave(plot = g2, file = "Fig.6c.pdf",
-      path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures")
+      path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
 
 g3 = ggplot(data = newdata, aes(x = LDA2, y = PC2)) +
   stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
@@ -489,13 +489,12 @@ g3 +
   geom_vline(xintercept = 0, size = 0.1)  
 
 ggsave(plot = g3, file = "Fig.6d.pdf",
-      path = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures")
+      path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
 
 Supp_Table_1 = newdata
 write.csv(Supp_Table_1, 
-          file = "/Users/KeatonWilson/Documents/Writing/Chapter 2 - Plant VOCs/Figures/Final Figures/Reanalyzed Final Figures
-Supp_Table_1.csv")
+          file = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/compound_table.csv")
 
 
 #Exporting wide2 for other purposes
-write.csv(wide2, file = "/Users/KeatonWilson/Documents/R Working Directory/voc_wide2")
+write.csv(wide2, file = "/Users/KeatonWilson/Documents/Projects/plantvoc/data/wide2.csv")
