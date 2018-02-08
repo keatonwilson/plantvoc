@@ -6,7 +6,7 @@ library(MASS)
 library(stringr)
 
 #Reading in the data
-volmaster = read.csv("VolatilesMasterEdits(Master).csv")
+volmaster = read.csv("/Users/KeatonWilson/Documents/Projects/plantvoc/data/VolatilesMasterEdits(Master).csv")
 colnames(volmaster) = c("Peak#", "RetTime", "Letter", "Type", "Width", "Area", "StartTime", 
                         "EndTime", "SampleNumber", "Treatment", "File", "LeafArea", "Compound", 
                         "TetralinCorrected", "LeafAreaCorrected", "PlantVolume", "WaterStatus", "Temp", 
