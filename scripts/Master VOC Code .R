@@ -71,7 +71,8 @@ library(tidyverse)
 #Cutting out compounds
 badvocs = c("1,3-diethyl benzene", "p-diethylbenzene", vollabels[36], "DEET", "2-ethylhexylester benzoic acid", "p-acetylethylbenzene", "didodecyl phthalate",
             "diisobutyl phthalate", "toluene")
-patterns = c("benzene", "DEET", vollabels[36], "benzoic acid", "phthalate", "Oxybenzone", "propanoic acid", " butylated hydroxytoluene", "NA")
+patterns = c("benzene", "DEET", vollabels[36], "benzoic acid", "phthalate", "Oxybenzone", "propanoic acid", " butylated hydroxytoluene", "NA", 
+             "2,6,10-trimethyl tetradecane", "5-ethyl-2,2,3-trimethylheptane", "2,3,6,7-tetramethyloctane", "2,2,7,7-tetramethyl octane", "2-bromo-octane")
 volmaster$CompoundName = as.character(volmaster$CompoundName)
 volmaster = volmaster[!grepl(paste(patterns, collapse = "|"), volmaster$CompoundName),]
 
@@ -85,11 +86,11 @@ wide2 = reshape(longvolmaster2, v.names = c("LeafCorrectedArea"), idvar = "Sampl
 
 
 
-newalphabet = gsub("LeafCorrectedArea.", "",names(wide2)[10:36])
+newalphabet = gsub("LeafCorrectedArea.", "",names(wide2)[10:31])
 colnames(wide2) = c("SampleNumber", "Treatment", "Humidity", "PlantVolume", "Temp", "WaterStatus", "Date", "Site", "MaxTemp", newalphabet)
 
 #Coercing all NAs to 0s for chemical amounts
-wide2[,10:36][is.na(wide2[,10:36])] = 0
+wide2[,10:31][is.na(wide2[,10:31])] = 0
 
 
 #Ok, wide 2 looks pretty good now.
@@ -100,8 +101,8 @@ glimpse(wide2)
 
 
 #Summing Areas a la Ray Calloway
-sumdat = apply(wide2[,-c(1:9, 11)], 1, function(x) sum(x))
-moresumdat = cbind(sumdat, wide2[,1:9])
+sumdat = apply(wide2[,-c(1:10)], 1, function(x) sum(x))
+moresumdat = cbind(sumdat, wide2[,1:10])
 moresumdat = transform(moresumdat, sumdat = (sumdat*0.0175)/7)
 moresumdat = transform(moresumdat, Temp = (Temp-32)*(5/9))
 
