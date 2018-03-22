@@ -53,7 +53,7 @@ fitControl = trainControl(method = "repeatedcv", number = 10, repeats = 10)
 ripper1 = train(Treatment ~ ., data = ML_voc_train,
                  method = "JRip",
                  trControl = fitControl,
-                 preProcess = c("zv"))
+                 preProcess = c("nzv", "pca"))
 
 p_rip = predict(ripper1, ML_voc_test)
 
@@ -65,7 +65,7 @@ postResample(pred = p_rip, obs = ML_voc_test$Treatment)
 rf1 = train(Treatment ~ ., data = ML_voc_train,
                       method = "ranger",
                       trControl = fitControl,
-                      preProcess = c("zv"))
+                      preProcess = c("nzv", "pca"))
 
 p_rf1 = predict(rf1, ML_voc_test)
 
@@ -79,7 +79,7 @@ length(ML_voc_test$Treatment)
 nnfit1 = train(Treatment ~ ., data = ML_voc_train,
                method = "nnet",
                trControl = fitControl,
-               preProcess = c("nzv"),
+               preProcess = c("nzv", "pca"),
                maxit = 100,
                linout = 1, 
                tuneLength = 10)
@@ -97,7 +97,7 @@ ploplot(nnfit1)
 ldafit = train(Treatment ~ ., data = ML_voc_train,
                method = "lda",
                trControl = fitControl,
-               preProcess = c("zv"))
+               preProcess = c("nzv", "pca"))
 
 ldafit
 summary(ldafit)
@@ -113,4 +113,27 @@ library(klaR)
 nbfit = train(Treatment ~ ., data = ML_voc_train,
                method = "nb",
                trControl = fitControl,
-               preProcess = c("zv"))
+               preProcess = c("nzv", "pca"))
+
+
+#svm 
+svmfit = train(Treatment ~ ., data = ML_voc_train,
+              method = "svmRadial",
+              trControl = fitControl,
+              preProcess = c("nzv", "pca"),
+              tuneLength = 15)
+
+p_svmfit = predict(svmfit, ML_voc_test)
+postResample(pred = p_svmfit, obs = ML_voc_test$Treatment)
+
+#elm
+elmfit = train(Treatment ~ ., data = ML_voc_train,
+               method = "elm",
+               trControl = fitControl,
+               preProcess = c("nzv", "pca"))
+
+#Extreme Gradient Boosting
+c50 = train(Treatment ~ ., data = ML_voc_train,
+               method = "C5.0",
+               trControl = fitControl,
+               preProcess = c("nzv", "pca"))
