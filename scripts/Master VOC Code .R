@@ -1,5 +1,6 @@
 ##Final Field VOC Code from Dissertation Work - Updated and modified from existed code on 11/20/17
 library(car)
+
 library(tidyverse)
 library(gdata)
 library(MASS)
@@ -29,7 +30,7 @@ alphabet = c(0, 8.05, 10.19, 12.7, 13.13, 13.26, 13.3, 13.46, 13.5, 13.57, 13.65
 
 #"chemical" letters
 vollabels = c("E-Z-hexenal", "m-xylene, 2-ethyl", "Z-3-Hexenyl Acetate", "Limonene", "Benzyl alcohol", 
-              "Trans-B-Ocimene", "p-diethylbenzene", "Ethylhexanol", "Ocimene", "6-ethyl-2-methyloctane", 
+              "Trans-B-Ocimene", "p-diethylbenzene1", "Ethylhexanol", "Ocimene", "6-ethyl-2-methyloctane", 
               "2-bromo-octane", "1,3-diethyl benzene", "5-ethyl-2,2,3-trimethylheptane", "2,3,6,7-tetramethyloctane", 
               "p-diethylbenzene", "a-pinene", "3,6-dimethylundecane", "Z-3-Hexenyl Propionate", "B-Linalool", "Nonanal",
               "2,2,7,7-tetramethyl octane", "Methyl Salicylate", "Tetralin", "Cuminol", "2,4-dimethylacteophenone", 
@@ -77,7 +78,7 @@ volmaster$CompoundName = as.character(volmaster$CompoundName)
 volmaster = volmaster[!grepl(paste(patterns, collapse = "|"), volmaster$CompoundName),]
 
 volmaster = volmaster %>%
-  filter(!is.na(CompoundName), CompoundName != "Butylated hydroxytoluene", CompoundName != "ethylhexyl benzoate")
+  filter(!is.na(CompoundName), CompoundName != "Butylated hydroxytoluene", CompoundName != "ethylhexyl benzoate", CompoundName != "3,6-dimethylundecane")
 
 
 #Widening the data set
@@ -86,18 +87,15 @@ wide2 = reshape(longvolmaster2, v.names = c("LeafCorrectedArea"), idvar = "Sampl
 
 
 
-newalphabet = gsub("LeafCorrectedArea.", "",names(wide2)[10:31])
+newalphabet = gsub("LeafCorrectedArea.", "",names(wide2)[10:30])
 colnames(wide2) = c("SampleNumber", "Treatment", "Humidity", "PlantVolume", "Temp", "WaterStatus", "Date", "Site", "MaxTemp", newalphabet)
 
 #Coercing all NAs to 0s for chemical amounts
-wide2[,10:31][is.na(wide2[,10:31])] = 0
+wide2[,10:30][is.na(wide2[,10:30])] = 0
 
 
 #Ok, wide 2 looks pretty good now.
 glimpse(wide2)
-
-
-
 
 
 #Summing Areas a la Ray Calloway
@@ -199,7 +197,7 @@ aitchisontrnsfrmd[aitchisontrnsfrmd == 0] = NA
 
 glimpse(aitchisontrnsfrmd)
 #Getting rid of tetralin
-aitchisontrnsfrmd = aitchisontrnsfrmd[,-11]
+aitchisontrnsfrmd = aitchisontrnsfrmd[,-10]
 
 
 #MANOVA Exploration
@@ -208,11 +206,23 @@ tempgood = aitchisontrnsfrmd[complete.cases(aitchisontrnsfrmd$Temp) == "TRUE",]
 humgood = aitchisontrnsfrmd[complete.cases(aitchisontrnsfrmd$Humidity) == "TRUE",]
 bothgood = tempgood[complete.cases(tempgood$Humidity) == "TRUE",]
 
+#Still some NAs
+sum(is.na(bothgood))
+
+#Let's find them
+apply(bothgood, 2, function(x) sum(is.na(x)))
+
+#They're in waterStatus
+glimpse(aitchisontrnsfrmd)
+
 Y = cbind(aitchisontrnsfrmd[-c(1:9)])
 Z = bothgood[,-c(1:9)]
 V = cbind(humgood[,-c(1:9)])
-X = tempgood[,10:35]
+X = tempgood[,10:29]
 length(names(aitchisontrnsfrmd))
+
+all_good = aitchisontrnsfrmd[complete.cases(aitchisontrnsfrmd),]
+sum(is.na(all_good))
 
 
 model1 = lm(as.matrix(bothgood[,-c(1:9)]) ~ 1, data = bothgood)
@@ -226,32 +236,34 @@ bothgoodnew = bothgood
 ######GOLDEN BIT OF CODE!##################
 #So the best models include Temp and Humidity, and the lowest AIC score is one with Temp*Humidity*WaterStatus
 
-model0 = manova(as.matrix(bothgoodnew[,-c(1:9)]) ~ 1, data = bothgoodnew)
+model0 = manova(as.matrix(all_good[,-c(1:9)]) ~ 1, data = all_good)
 extractAIC(model0)
-model1 = manova(as.matrix(bothgoodnew[,-c(1:9)]) ~ Treatment, data = bothgoodnew)
+summary(model0, tol = 0)
+model1 = manova(as.matrix(all_good[,-c(1:9)]) ~ Treatment, data = all_good)
 extractAIC(model1)
-summary(model1)
-model2 = manova(as.matrix(bothgoodnew[,-c(1:9)]) ~ Temp, data = bothgoodnew)
+summary(model1, tol = 0)
+model2 = manova(as.matrix(all_good[,-c(1:9)]) ~ Temp, data = all_good)
 extractAIC(model2)
-summary(model2)
-model3 = manova(as.matrix(bothgoodnew[,-c(1:9)]) ~ Temp+Humidity, data = bothgoodnew)
+summary(model2, tol = 0)
+model3 = manova(as.matrix(all_good[,-c(1:9)]) ~ Temp+Humidity, data = all_good)
 extractAIC(model3)
-summary(model3)
-model4 = manova(as.matrix(bothgoodnew[,-c(1:9)]) ~ Temp*Humidity, data = bothgoodnew)
+summary(model3, tol = 0)
+model4 = manova(as.matrix(all_good[,-c(1:9)]) ~ Temp*Humidity, data = all_good)
 extractAIC(model4)
-summary(model4)
-model5 = manova(as.matrix(bothgoodnew[,-c(1:9)]) ~ Temp*Humidity+WaterStatus, data = bothgoodnew)
-summary(model5)
+summary(model4, tol = 0)
+model5 = manova(as.matrix(all_good[,-c(1:9)]) ~ Temp*Humidity+WaterStatus, data = all_good)
+summary(model5, tol = 0)
 extractAIC(model5)
-model6 = manova(as.matrix(bothgoodnew[,-c(1:9)]) ~ Temp*Humidity*WaterStatus, data = bothgoodnew)
+model6 = manova(as.matrix(all_good[,-c(1:9)]) ~ Temp*Humidity*WaterStatus, data = all_good)
 extractAIC(model6)
-summary(model6)
+summary(model6, tol = 0)
 
 #Best model is the last one - most complex, but lowest AIC.
 
-
+comp_df_index = complete.cases(aitchisontrnsfrmd[,-c(1:9)])
+comp_df = aitchisontrnsfrmd[comp_df_index,]
 #PCA Stuff
-pca.model = prcomp(bothgoodnew[,-c(1:9)], scale = FALSE, center = TRUE)
+pca.model = prcomp(comp_df[,-c(1:9)])
 summary(pca.model)
 
 PC1 = predict(pca.model)[,1]
@@ -263,19 +275,20 @@ PC6 = predict(pca.model)[,6]
 PC7 = predict(pca.model)[,7]
 PC8 = predict(pca.model)[,8]
 
-plot(bothgoodnew$Treatment, PC1)
-plot(bothgoodnew$Treatment, PC2)
-plot(bothgoodnew$Treatment, PC3)
+plot(comp_df$Treatment, PC1)
+plot(comp_df$Treatment, PC2)
+plot(comp_df$Treatment, PC3)
 
 #Looks like none of the PCAs correlate with herbivory treatments, just like MANOVA. 
 
 #Let's look at other variables
-lm1 = lm(PC1~bothgoodnew$Humidity)
+lm1 = lm(PC1 ~ Humidity, data = comp_df)
 
 summary(lm1)
-##OK PC1 loads with humidity, good p-value, bad R2, but whatever. Let's make a nice ggplot
+##OK PC1 loads with humidity, good p-value, bad R2, but whatever. Let's make a nice ggplot 
+##PC1 no longer loads with humidity
 
-Fig.2d = ggplot(bothgoodnew, aes(x = Humidity, y =PC1)) +
+Fig.2d = ggplot(all_good, aes(x = Humidity, y =PC1)) +
   geom_jitter(size = 4, alpha = 0.6, width = 0.5) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
@@ -292,11 +305,11 @@ ggsave(file = "Fig.2d.pdf", plot = Fig.2d,
 
 
 
-lm2 = lm(PC2 ~ Temp, data = bothgoodnew)
+lm2 = lm(PC2 ~ Humidity, data = comp_df)
 summary(lm2)
 
 #Nice, strong relationship between temperature and PC2 - Plot!
-Fig.2c = ggplot(bothgoodnew, aes(x = ((Temp-32)*(5/9)), y =PC2)) +
+Fig.2c = ggplot(comp_df, aes(x = ((Temp-32)*(5/9)), y =PC2)) +
   geom_jitter(size = 4, alpha = 0.6, width = 0.5) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
@@ -310,6 +323,11 @@ ggsave(file = "Fig.2c.pdf", plot = Fig.2c,
        width = 7, 
        height = 6,
        units = "in")
+
+#Let's check water status
+lm3 = lm(PC3 ~ WaterStatus, data = comp_df)
+summary(lm3)
+
 
 
 #Discriminant Analysis
@@ -349,7 +367,7 @@ Fig.3  = ggplot(datVOC, aes(x=LD1, y=LD2, color = Treatment) ) +
   geom_point(size = 6, aes(shape = Treatment), alpha = 0.5) +
   theme_classic() +
   geom_path(data = ell_master, aes(x=x, y=y), size = 1, linetype = 2) + 
-  labs(x = "LD1 (59%)", y = "LD2 (41%)")
+  labs(x = "LD1 (62%)", y = "LD2 (38%)")
 
 #Don't run
 #ggsave(plot = Fig.3, file = "Fig.3.pdf",
@@ -366,12 +384,13 @@ pca.model
 
 #I think I need to standardize this shit, so for PCA stuff...
 #Need to try and use a different package to generate the structure matrix
+install.packages("candisc")
 library(candisc)
 
 #The candisc package wants the data in a different form, a model...
 d = as.data.frame(aitchisontrnsfrmd[,-c(1:9)])
 lda.mod = lm(as.matrix(aitchisontrnsfrmd[,-c(1:9)]) ~ Treatment, data = aitchisontrnsfrmd)
-lda.model1 = lda(aitchisontrnsfrmd$Treatment~., aitchisontrnsfrmd[,-c(1:9)], na.action=na.omit)
+lda.model1 = MASS::lda(aitchisontrnsfrmd$Treatment~., aitchisontrnsfrmd[,-c(1:9)], na.action=na.omit)
 
 test.canl = candisc(lda.mod, term = "Treatment")
 test.canl$coeffs.std
@@ -411,20 +430,19 @@ newdata = newdata %>%
 install.packages("ggrepel")
 library(ggrepel)
 
-g = ggplot(data = newdata, aes(x = LDA1, y = PC1)) +
-  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5)
-
-dat_lims = lapply(newdata[,3:6], function(v) c(min(v), max(v)))
+dat_lims = apply(newdata[,3:6], 2, function(v) c(min(v), max(v)))
 plot_lims = ggplot_build(g)$layout$panel_ranges[[1]][c("x.range", "y.range")]
 
-g +
-  scale_x_continuous(limits = c(-2,2)) +
-  scale_y_continuous(limits = c(-2,2)) +
-  coord_cartesian(xlim = plot_lims$x.range, ylim = plot_lims$y.range) +
+
+g = ggplot(data = newdata, aes(x = LDA1, y = PC1)) +
+  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
+  geom_label_repel(aes(label = ID),size = 5) +
+  scale_y_continuous(limits = c(-6,6)) +
+  scale_x_continuous(limits = c(-6,6)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
   theme_classic() +
-  geom_hline(yintercept = 1.5) +
-  geom_vline(xintercept = 0.75) +
+  geom_hline(yintercept = 0.35) +
+  geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
   geom_vline(xintercept = 0, size = 0.1) 
 
@@ -434,18 +452,13 @@ ggsave(plot = g, file = "Fig.6a.pdf",
 
 g1 = ggplot(data = newdata, aes(x = LDA1, y = PC2)) +
   stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5)
-
-dat_lims = lapply(newdata[,3:6], function(v) c(min(v), max(v)))
-plot_lims = ggplot_build(g)$layout$panel_ranges[[1]][c("x.range", "y.range")]
-
-g1 +
-  scale_x_continuous(limits = c(-2,2)) +
-  scale_y_continuous(limits = c(-2,2)) +
-  coord_cartesian(xlim = plot_lims$x.range, ylim = plot_lims$y.range) +
+  geom_label_repel(aes(label = ID),size = 5) +
+  scale_y_continuous(limits = c(-6,6)) +
+  scale_x_continuous(limits = c(-6,6)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
   theme_classic() +
-  geom_hline(yintercept = 1.5) +
-  geom_vline(xintercept = 0.75) +
+  geom_hline(yintercept = 0.35) +
+  geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
   geom_vline(xintercept = 0, size = 0.1) 
 
@@ -454,18 +467,13 @@ ggsave(plot = g1, file = "Fig.6b.pdf",
 
 g2 = ggplot(data = newdata, aes(x = LDA2, y = PC1)) +
   stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5)
-
-dat_lims = lapply(newdata[,3:6], function(v) c(min(v), max(v)))
-plot_lims = ggplot_build(g)$layout$panel_ranges[[1]][c("x.range", "y.range")]
-
-g2 +
-  scale_x_continuous(limits = c(-2,2)) +
-  scale_y_continuous(limits = c(-2,2)) +
-  coord_cartesian(xlim = plot_lims$x.range, ylim = plot_lims$y.range) +
+  geom_label_repel(aes(label = ID),size = 5) +
+  scale_y_continuous(limits = c(-6,6)) +
+  scale_x_continuous(limits = c(-6,6)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
   theme_classic() +
-  geom_hline(yintercept = 1.5) +
-  geom_vline(xintercept = 0.75) +
+  geom_hline(yintercept = 0.35) +
+  geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
   geom_vline(xintercept = 0, size = 0.1)  
 
@@ -474,20 +482,15 @@ ggsave(plot = g2, file = "Fig.6c.pdf",
 
 g3 = ggplot(data = newdata, aes(x = LDA2, y = PC2)) +
   stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5)
-
-dat_lims = lapply(newdata[,3:6], function(v) c(min(v), max(v)))
-plot_lims = ggplot_build(g)$layout$panel_ranges[[1]][c("x.range", "y.range")]
-
-g3 +
-  scale_x_continuous(limits = c(-2,2)) +
-  scale_y_continuous(limits = c(-2,2)) +
-  coord_cartesian(xlim = plot_lims$x.range, ylim = plot_lims$y.range) +
+  geom_label_repel(aes(label = ID),size = 5) +
+  scale_y_continuous(limits = c(-6,6)) +
+  scale_x_continuous(limits = c(-6,6)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
   theme_classic() +
-  geom_hline(yintercept = 1.5) +
-  geom_vline(xintercept = 0.75) +
+  geom_hline(yintercept = 0.35) +
+  geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
-  geom_vline(xintercept = 0, size = 0.1)  
+  geom_vline(xintercept = 0, size = 0.1) 
 
 ggsave(plot = g3, file = "Fig.6d.pdf",
       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
