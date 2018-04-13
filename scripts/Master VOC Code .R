@@ -131,6 +131,7 @@ lm1 = lm(sumdat ~Temp*Humidity, data = moresumdatedit)
 lm2 = lm(sumdat ~ Temp, data = moresumdatedit)
 lm3 = lm(sumdat ~ Temp+Humidity, data = moresumdatedit)
 lm4 = lm(sumdat ~ Humidity, data = moresumdatedit)
+lm5 = lm(sumdat ~ Temp*Humidity, data = moresumdatedit)
 
 summary(herblm)
 summary(lm1)
@@ -550,3 +551,13 @@ write.csv(Supp_Table_1,
 
 #Exporting wide2 for other purposes
 write.csv(wide2, file = "/Users/KeatonWilson/Documents/Projects/plantvoc/data/wide2.csv")
+
+
+wide2 = as.tibble(wide2)
+
+aitchisontrnsfrmd = aitchisontrnsfrmd %>%
+  mutate(herb_no_herb = ifelse(Treatment != "Control", "Herb", "NoHerb")) 
+
+library(MASS)
+lda2 = lda(aitchisontrnsfrmd$herb_no_herb ~., aitchisontrnsfrmd[,-c(1:9, 29)])
+plot(lda2)
