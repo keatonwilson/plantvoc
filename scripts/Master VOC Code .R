@@ -1,10 +1,15 @@
-##Final Field VOC Code from Dissertation Work - Updated and modified from existed code on 11/20/17
-library(car)
+##Final Field VOC Code from Dissertation Work - Updated and modified from existed code on 2018-04-11
+##Keaton Wilson
+##keatonwilson@me.com
 
+
+#Packages
+library(car)
 library(tidyverse)
 library(gdata)
 library(MASS)
 library(stringr)
+
 
 #Reading in the data
 volmaster = read.csv("/Users/KeatonWilson/Documents/Projects/plantvoc/data/VolatilesMasterEdits(Master).csv")
@@ -97,12 +102,21 @@ wide2[,10:30][is.na(wide2[,10:30])] = 0
 #Ok, wide 2 looks pretty good now.
 glimpse(wide2)
 
+#Checking on some compounds that look like they don't have much variance
+unique(wide2$`3-ethyloctane`)
+unique(wide2$`2-ethylhexylsalicylate`)
+unique(wide2$`E-Z-hexenal`)
+
+#Let's get rid of 3-ethyloctane, not much variance (1 sample has it)
+
+wide2 = wide2[,-30]
 
 #Summing Areas a la Ray Calloway
 sumdat = apply(wide2[,-c(1:10)], 1, function(x) sum(x))
 moresumdat = cbind(sumdat, wide2[,1:10])
 moresumdat = transform(moresumdat, sumdat = (sumdat*0.0175)/7)
 moresumdat = transform(moresumdat, Temp = (Temp-32)*(5/9))
+moresumdat = transform(moresumdat, MaxTemp = (MaxTemp-32)*(5/9))
 
 #Samples 47 and 45 look like outliers, let's remove them.
 moresumdatedit = subset(moresumdat, moresumdat$SampleNumber != "45" & moresumdat$SampleNumber != "47")
@@ -141,7 +155,8 @@ Fig.2a = ggplot(moresumdatedit, aes(x = Temp, y =sumdat)) +
   geom_smooth(method=lm, colour = "black") +
   xlab("Mean 3 Day Temperature (ºC)") +
   ylab(bquote('Area Specific Emission Rate ('*µL ~ Hour^-1 ~ cm^-2*')')) +
-  geom_hline(yintercept = 0, size = 0.25)
+  geom_hline(yintercept = 0, size = 0.25) +
+  coord_cartesian(xlim = c(20,33), ylim = c(-1500,12000))
 
 Fig.2b = ggplot(moresumdatedit, aes(x = Humidity, y =sumdat)) +
   geom_jitter(size = 4, alpha = 0.6, width = 0.05) +
@@ -150,7 +165,8 @@ Fig.2b = ggplot(moresumdatedit, aes(x = Humidity, y =sumdat)) +
   geom_smooth(method="lm", colour = "black", formula = y ~ poly(x,2)) +
   xlab("Mean 3 Day Relative Humidity (%)") +
   ylab(bquote('Area Specific Emission Rate ('*µL ~ Hour^-1 ~ cm^-2*')')) +
-  geom_hline(yintercept = 0, size = 0.25)
+  geom_hline(yintercept = 0, size = 0.25) +
+  coord_cartesian(xlim = c(25,75), ylim = c(-1500,12000))
 
 
 
@@ -218,12 +234,16 @@ glimpse(aitchisontrnsfrmd)
 Y = cbind(aitchisontrnsfrmd[-c(1:9)])
 Z = bothgood[,-c(1:9)]
 V = cbind(humgood[,-c(1:9)])
-X = tempgood[,10:29]
+X = tempgood[,10:28]
 length(names(aitchisontrnsfrmd))
 
 all_good = aitchisontrnsfrmd[complete.cases(aitchisontrnsfrmd),]
-sum(is.na(all_good))
+all_good = all_good %>%
+  mutate(MaxTemp = (MaxTemp-32)*(5/9))
 
+#Checking for NAs
+
+sum(is.na(all_good))
 
 model1 = lm(as.matrix(bothgood[,-c(1:9)]) ~ 1, data = bothgood)
 model2 = manova(as.matrix(bothgood[,-c(1:9)]) ~ Temp+Humidity+Treatment, data = bothgood)
@@ -257,13 +277,20 @@ extractAIC(model5)
 model6 = manova(as.matrix(all_good[,-c(1:9)]) ~ Temp*Humidity*WaterStatus, data = all_good)
 extractAIC(model6)
 summary(model6, tol = 0)
+model7 = manova(as.matrix(all_good[,-c(1:9)]) ~ Temp*Humidity*WaterStatus*MaxTemp, data = all_good)
+extractAIC(model7)
+summary(model7, tol = 0)
+model8 = manova(as.matrix(all_good[,-c(1:9)]) ~ MaxTemp, data = all_good)
+extractAIC(model8)
+summary(model8, tol = 0)
 
-#Best model is the last one - most complex, but lowest AIC.
-
+#Best model is the last one - most complex, but lowest AIC (includes MaxTemp)
 comp_df_index = complete.cases(aitchisontrnsfrmd[,-c(1:9)])
 comp_df = aitchisontrnsfrmd[comp_df_index,]
+comp_df = comp_df %>%
+  mutate(MaxTemp = (MaxTemp-32)*(5/9))
 #PCA Stuff
-pca.model = prcomp(comp_df[,-c(1:9)])
+pca.model = prcomp(comp_df[,-c(1:9)], center = TRUE, scale = TRUE)
 summary(pca.model)
 
 PC1 = predict(pca.model)[,1]
@@ -282,22 +309,21 @@ plot(comp_df$Treatment, PC3)
 #Looks like none of the PCAs correlate with herbivory treatments, just like MANOVA. 
 
 #Let's look at other variables
-lm1 = lm(PC1 ~ Humidity, data = comp_df)
+lm1 = lm(PC1 ~ Temp, data = comp_df)
 
 summary(lm1)
-##OK PC1 loads with humidity, good p-value, bad R2, but whatever. Let's make a nice ggplot 
-##PC1 no longer loads with humidity
 
-Fig.2d = ggplot(all_good, aes(x = Humidity, y =PC1)) +
+#PC1 doesn't correlate with anything...
+Fig.2e = ggplot(comp_df, aes(x = MaxTemp, y = PC3)) +
   geom_jitter(size = 4, alpha = 0.6, width = 0.5) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
   geom_smooth(method=lm, colour = "black") +
-  xlab("Mean 3 Day Relative Humidity (%)") +
-  ylab("PC1")
+  xlab("Maximum 3 Day Temperature (ºC)") +
+  ylab("PC3")
 
 #Don't run this on your computer, the path will be different
-ggsave(file = "Fig.2d.pdf", plot = Fig.2d,
+ggsave(file = "Fig.2e.pdf", plot = Fig.2e,
        path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/",
        width = 7, 
        height = 6,
@@ -307,14 +333,26 @@ ggsave(file = "Fig.2d.pdf", plot = Fig.2d,
 
 lm2 = lm(PC2 ~ Humidity, data = comp_df)
 summary(lm2)
+lm3 = lm(PC2 ~ Temp, data = comp_df)
+summary(lm3)
+lm4 = lm(PC2 ~ Temp*Humidity, data = comp_df)
+summary(lm4)
 
-#Nice, strong relationship between temperature and PC2 - Plot!
+#Nice, strong relationship between temperature and PC2 and Humidity and PC2 - Plot!
 Fig.2c = ggplot(comp_df, aes(x = ((Temp-32)*(5/9)), y =PC2)) +
   geom_jitter(size = 4, alpha = 0.6, width = 0.5) +
   theme_classic() +
   theme(text = element_text(size = 25)) +
   geom_smooth(method=lm, colour = "black") +
-  xlab("Mean 3 Day Relative Temperature (ºC)") +
+  xlab("Mean 3 Day Temperature (ºC)") +
+  ylab("PC2")
+
+Fig.2d = ggplot(comp_df, aes(x = Humidity, y = PC2)) +
+  geom_jitter(size = 4, alpha = 0.6, width = 0.5) +
+  theme_classic() +
+  theme(text = element_text(size = 25)) +
+  geom_smooth(method=lm, colour = "black") +
+  xlab("Mean 3 Day Relative Humidity (%)") +
   ylab("PC2")
 
 #Don't run
@@ -324,14 +362,17 @@ ggsave(file = "Fig.2c.pdf", plot = Fig.2c,
        height = 6,
        units = "in")
 
-#Let's check water status
-lm3 = lm(PC3 ~ WaterStatus, data = comp_df)
-summary(lm3)
+ggsave(file = "Fig.2d.pdf", plot = Fig.2d, 
+       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/",
+       width = 7, 
+       height = 6,
+       units = "in")
+
 
 
 
 #Discriminant Analysis
-lda.model = lda(aitchisontrnsfrmd$Treatment[-13]~., aitchisontrnsfrmd[-13,-c(1:9)])
+lda.model = lda(aitchisontrnsfrmd$Treatment~., aitchisontrnsfrmd[,-c(1:9)])
 summary(lda.model)
 lda.model
 #Assessing the LDA - have to get rid of row 13 first, it's blank and fucking stuff up.
@@ -363,15 +404,15 @@ ell_high$Treatment = c("High")
 
 ell_master = rbind(ell_control, ell_low, ell_high)
 
-Fig.3  = ggplot(datVOC, aes(x=LD1, y=LD2, color = Treatment) ) + 
-  geom_point(size = 6, aes(shape = Treatment), alpha = 0.5) +
+Fig.3  = ggplot(datVOC, aes(x=LD1, y=LD2) ) + 
+  geom_jitter(size = 6, aes(shape = Treatment), alpha = 0.5, width = 0.15, height = 0.15) +
   theme_classic() +
-  geom_path(data = ell_master, aes(x=x, y=y), size = 1, linetype = 2) + 
+  geom_path(data = ell_master, aes(x=x, y=y, group = Treatment), size = 1, linetype = 2) + 
   labs(x = "LD1 (62%)", y = "LD2 (38%)")
 
 #Don't run
-#ggsave(plot = Fig.3, file = "Fig.3.pdf",
- #      path = "/Users/KeatonWilson/Desktop/ePortfolio")
+ggsave(plot = Fig.3, file = "Fig.3.pdf",
+       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
 
 #New Stuff for Andre
 
@@ -402,13 +443,13 @@ loadings = (pca.model$rotation *pca.model$sdev)
 dim(loadings)
 
 #Building a new dataframe to do the Stimulus-Space plots
-newdata = (cbind((abs(test.canl$coeffs.std[,1])),(abs(loadings[,1])),(abs(test.canl$coeffs.std[,2])),(abs(loadings[,2])), rownames(test.canl$coeffs.std)))
-colnames(newdata) = c("LDA1", "PC1", "LDA2", "PC2", "compound")
+newdata = (cbind((abs(test.canl$coeffs.std[,1])),(abs(loadings[,3])),(abs(test.canl$coeffs.std[,2])),(abs(loadings[,2])), rownames(test.canl$coeffs.std)))
+colnames(newdata) = c("LDA1", "PC3", "LDA2", "PC2", "compound")
 
 
 newdata = as_data_frame(newdata)
 newdata$LDA1 = as.numeric(newdata$LDA1)
-newdata$PC1 = as.numeric(newdata$PC1)
+newdata$PC3 = as.numeric(newdata$PC3)
 newdata$PC2 = as.numeric(newdata$PC2)
 newdata$LDA2 = as.numeric(newdata$LDA2)
 
@@ -423,77 +464,84 @@ detach(package:MASS)
 newdata[,1:4] = round(newdata[,1:4], digits = 4)
 newdata$ID = 1:length(newdata$LDA1)
 newdata = newdata %>%
-  select(compound, ID, LDA1, PC1, LDA2, PC2)
+  select(compound, ID, LDA1, PC3, LDA2, PC2)
 
 
 #plotting
-install.packages("ggrepel")
+#install.packages("ggrepel")
 library(ggrepel)
 
 dat_lims = apply(newdata[,3:6], 2, function(v) c(min(v), max(v)))
 plot_lims = ggplot_build(g)$layout$panel_ranges[[1]][c("x.range", "y.range")]
 
 
-g = ggplot(data = newdata, aes(x = LDA1, y = PC1)) +
-  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5) +
+g = ggplot(data = newdata, aes(x = LDA1, y = PC3)) +
+  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon", n = 500) +
+  geom_label_repel(aes(label = ID),size = 5, min.segment.length = 0) +
   scale_y_continuous(limits = c(-6,6)) +
   scale_x_continuous(limits = c(-6,6)) +
-  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 1.1)) +
   theme_classic() +
-  geom_hline(yintercept = 0.35) +
+  geom_hline(yintercept = 0.505) +
   geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
-  geom_vline(xintercept = 0, size = 0.1) 
+  geom_vline(xintercept = 0, size = 0.1) +
+  guides(fill = FALSE)
 
 ggsave(plot = g, file = "Fig.6a.pdf",
       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/", limitsize = FALSE)
 
 
 g1 = ggplot(data = newdata, aes(x = LDA1, y = PC2)) +
-  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5) +
+  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon", n = 500) +
+  geom_label_repel(aes(label = ID),size = 5, min.segment.length = 0) +
   scale_y_continuous(limits = c(-6,6)) +
   scale_x_continuous(limits = c(-6,6)) +
-  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 1.1)) +
   theme_classic() +
-  geom_hline(yintercept = 0.35) +
+  geom_hline(yintercept = 0.505) +
   geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
-  geom_vline(xintercept = 0, size = 0.1) 
+  geom_vline(xintercept = 0, size = 0.1) +
+  guides(fill = FALSE)
 
 ggsave(plot = g1, file = "Fig.6b.pdf",
       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
 
-g2 = ggplot(data = newdata, aes(x = LDA2, y = PC1)) +
-  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5) +
+g2 = ggplot(data = newdata, aes(x = LDA2, y = PC3)) +
+  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon", n = 500) +
+  geom_label_repel(aes(label = ID),size = 5, min.segment.length = 0) +
   scale_y_continuous(limits = c(-6,6)) +
   scale_x_continuous(limits = c(-6,6)) +
-  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 1.1)) +
   theme_classic() +
-  geom_hline(yintercept = 0.35) +
+  geom_hline(yintercept = 0.505) +
   geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
-  geom_vline(xintercept = 0, size = 0.1)  
+  geom_vline(xintercept = 0, size = 0.1) +
+  guides(fill = FALSE)
 
 ggsave(plot = g2, file = "Fig.6c.pdf",
       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
 
 g3 = ggplot(data = newdata, aes(x = LDA2, y = PC2)) +
-  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon") +
-  geom_label_repel(aes(label = ID),size = 5) +
+  stat_density_2d(aes(fill = ..level..), alpha = 0.2, geom = "polygon", n = 500) +
+  geom_label_repel(aes(label = ID),size = 5, min.segment.length = 0) +
   scale_y_continuous(limits = c(-6,6)) +
   scale_x_continuous(limits = c(-6,6)) +
-  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 0.7)) +
+  coord_cartesian(xlim = c(-0.1, 1.75), ylim = c(-0.1, 1.1)) +
   theme_classic() +
-  geom_hline(yintercept = 0.35) +
+  geom_hline(yintercept = 0.505) +
   geom_vline(xintercept = 0.875) +
   geom_hline(yintercept = 0, size = 0.1) +
-  geom_vline(xintercept = 0, size = 0.1) 
+  geom_vline(xintercept = 0, size = 0.1) +
+  guides(fill = FALSE)
 
 ggsave(plot = g3, file = "Fig.6d.pdf",
       path = "/Users/KeatonWilson/Documents/Projects/plantvoc/output/")
+library(ggpubr)
+Fig.4 = ggarrange(g1,g3,g,g2)
+ggexport(Fig.4, file = "Fig.6(NEW).pdf", filename = "test.pdf")
 
 Supp_Table_1 = newdata
 write.csv(Supp_Table_1, 
